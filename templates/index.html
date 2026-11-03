@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PackSort OS &mdash; Industrial Optical Inspection & Rejection Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Fonts: Inter & JetBrains Mono for authentic industrial telemetry look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-canvas: #0b0d13;
+      --bg-surface: #111520;
+      --bg-surface-elevated: #161c2b;
+      --bg-surface-subtle: #1c2336;
+      --border-subtle: #222a3f;
+      --border-strong: #2e3955;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-emerald: #10b981;
+      --accent-emerald-subtle: rgba(16, 185, 129, 0.12);
+      --accent-amber: #f59e0b;
+      --accent-amber-subtle: rgba(245, 158, 11, 0.12);
+      --accent-rose: #f43f5e;
+      --accent-rose-subtle: rgba(244, 63, 94, 0.12);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-subtle: rgba(6, 182, 212, 0.12);
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.88rem;
+      letter-spacing: -0.01em;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+    }
+
+    /* Industrial Top Bar */
+    .top-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.65rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 0.98rem;
+      letter-spacing: 0.04em;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .brand-logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      display: grid;
+      place-items: center;
+      color: #0b0d13;
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    .station-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      border-left: 1px solid var(--border-subtle);
+      padding-left: 0.8rem;
+      margin-left: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .telemetry-chip {
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Professional Status Indicators */
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.2s ease;
+    }
+    .status-dot.online {
+      background-color: var(--accent-emerald);
+      box-shadow: 0 0 0 2px var(--accent-emerald-subtle);
+    }
+    .status-dot.offline {
+      background-color: var(--text-muted);
+    }
+
+    /* Structured Panels */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .panel-header {
+      padding: 0.75rem 1rem;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .panel-header .title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-body {
+      padding: 1rem;
+    }
+
+    /* Industrial Camera Viewport */
+    .viewport-wrapper {
+      position: relative;
+      background: #000;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+      aspect-ratio: 4 / 3;
+      max-height: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .viewport-wrapper img, 
+    .viewport-wrapper canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Viewport Reticle / Corner Brackets */
+    .reticle-corner {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-color: rgba(255, 255, 255, 0.3);
+      pointer-events: none;
+      z-index: 5;
+    }
+    .reticle-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
+    .reticle-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
+    .reticle-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; }
+    .reticle-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; }
+
+    /* HUD Bar on Top of Camera */
+    .viewport-hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    .hud-badge {
+      background: rgba(11, 13, 19, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 0.2rem 0.55rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #e2e8f0;
+      letter-spacing: 0.03em;
+    }
+
+    /* Defect Alert Banner */
+    .detection-alert {
+      position: absolute;
+      top: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(244, 63, 94, 0.95);
+      border: 1px solid #ff758f;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.35rem 1.1rem;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(244, 63, 94, 0.4);
+      display: none;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .detection-alert.show {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .feed-lost {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 13, 19, 0.92);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      z-index: 15;
+    }
+
+    /* KPI Cards */
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border-strong);
+    }
+
+    .metric-card.accent-emerald::before { background: var(--accent-emerald); }
+    .metric-card.accent-rose::before { background: var(--accent-rose); }
+    .metric-card.accent-amber::before { background: var(--accent-amber); }
+    .metric-card.accent-cyan::before { background: var(--accent-cyan); }
+
+    .metric-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 1.85rem;
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Control Sliders & Inputs */
+    .control-row {
+      margin-bottom: 0.95rem;
+    }
+
+    .control-label-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .control-label {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .control-val-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background: var(--accent-cyan-subtle);
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    /* Precision Range Input Styling */
+    input[type=range].custom-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 2px;
+      outline: none;
+      margin: 0.4rem 0;
+    }
+    input[type=range].custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: 2px solid var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
+    }
+    input[type=range].custom-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Hardware & Status Rows */
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
+    }
+    .status-row:last-child { border-bottom: none; }
+    .status-row .key { color: var(--text-secondary); }
+    .status-row .val { font-family: var(--font-mono); font-weight: 500; }
+
+    /* Industrial Action Buttons */
+    .btn-industrial {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+      border-radius: 6px;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: all 0.15s ease;
+    }
+
+    .btn-industrial-danger {
+      background: #e11d48;
+      color: #fff;
+      border-color: #f43f5e;
+    }
+    .btn-industrial-danger:hover:not(:disabled) {
+      background: #be123c;
+      color: #fff;
+    }
+    .btn-industrial-danger:active {
+      transform: translateY(1px);
+    }
+
+    .btn-industrial-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      border-color: var(--border-strong);
+    }
+    .btn-industrial-secondary:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-primary);
+      border-color: #3b4767;
+    }
+
+    .btn-industrial-primary {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .btn-industrial-primary:hover {
+      background: #0369a1;
+      color: #fff;
+    }
+
+    /* Modern Table Grid */
+    .industrial-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.78rem;
+    }
+
+    .industrial-table th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+    }
+
+    .industrial-table td {
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      vertical-align: middle;
+    }
+
+    .industrial-table tbody tr:hover td {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .badge-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-reject {
+      background: var(--accent-rose-subtle);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+    .badge-accept {
+      background: var(--accent-emerald-subtle);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-review-icon {
+      padding: 0.15rem 0.45rem;
+      font-size: 0.72rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+    .btn-review-icon:hover {
+      border-color: var(--border-strong);
+      color: #fff;
+    }
+    .btn-review-icon.active-ok {
+      background: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+      color: #0b0d13;
+    }
+    .btn-review-icon.active-fail {
+      background: var(--accent-rose);
+      border-color: var(--accent-rose);
+      color: #fff;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-canvas); }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3c4969; }
+  </style>
+</head>
+<body>
+
+<!-- Industrial Top Header Bar -->
+<header class="top-header">
+  <div class="container-fluid px-3 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+      <a href="/" class="brand-mark">
+        <span class="brand-logo-icon">P</span>
+        <span>PACKSORT<span style="font-weight:300;opacity:0.75;margin-left:2px;">OS</span></span>
+      </a>
+      <span class="station-tag d-none d-md-inline-block">Cell-01 &bull; Optical Line Sorter</span>
+    </div>
+
+    <!-- Center System Status -->
+    <div class="d-none d-lg-flex align-items-center gap-3">
+      <div class="telemetry-chip">
+        <span class="status-dot" id="cam-dot"></span>
+        <span>OPTICAL: <strong id="cam-status" style="color:var(--text-primary);">READY</strong></span>
+      </div>
+      <div class="telemetry-chip">
+        <i class="bi bi-clock-history text-muted"></i>
+        <span id="sf">30</span> FPS
+      </div>
+      <div id="mode-badge"></div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-industrial btn-industrial-secondary btn-sm" id="toggle-detect" title="Arm / Disarm Computer Vision Engine">
+        <i class="bi bi-shield-check text-success"></i>
+        <span>VISION: <strong id="detect-state">ON</strong></span>
+      </button>
+      <a href="/admin" class="btn btn-industrial btn-industrial-secondary btn-sm">
+        <i class="bi bi-person-badge"></i>
+        <span class="d-none d-sm-inline">Admin</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- Main Workspace Layout -->
+<main class="container-fluid px-3 py-3 flex-grow-1">
+  
+  <!-- Row 1: KPI Telemetry Counters -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+      <div class="metric-card accent-emerald">
+        <div class="metric-label">Units Inspected</div>
+        <div class="metric-value" id="sn">0</div>
+        <div class="metric-sub">Processed through cell</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card accent-rose">
+        <div class="metric-label">Defects Purged</div>
+        <div class="metric-value" id="sr" style="color:var(--accent-rose);">0</div>
+        <div class="metric-sub">Torn / structural flaws</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card accent-cyan">
+        <div class="metric-label">Yield Accuracy</div>
+        <div class="metric-value" id="sa">-</div>
+        <div class="metric-sub">Audited classification</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card accent-amber">
+        <div class="metric-label">Buffer Queue</div>
+        <div class="metric-value" id="sq">50</div>
+        <div class="metric-sub">Serialized tracking IDs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Live Vision Terminal (Left) & Controls/Hardware (Right) -->
+  <div class="row g-3">
+    
+    <!-- Left Column: Camera Viewport + Event History -->
+    <div class="col-12 col-xl-8">
+      
+      <!-- Vision Terminal Panel -->
+      <div class="panel mb-3">
+        <div class="panel-header">
+          <div class="title-group">
+            <i class="bi bi-camera-video text-primary"></i>
+            <span>Inspection Viewport [CAM-01]</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-industrial btn-industrial-secondary btn-sm py-1 px-2" id="btn-reconnect-cam" title="Scan and reconnect laptop camera"><i class="bi bi-arrow-repeat"></i> Reconnect Cam</button>
+            <button class="btn btn-industrial btn-industrial-secondary btn-sm py-1 px-2" id="btn-toggle-feed" title="Switch between live webcam and simulation conveyor"><i class="bi bi-display"></i> Sim Feed</button>
+            <span class="hud-badge d-none d-sm-inline">RES: 640&times;480</span>
+            <span class="hud-badge" id="s-det">CONTOUR</span>
+          </div>
+        </div>
+        <div class="panel-body p-2" style="background:#080a0f;">
+          
+          <div class="viewport-wrapper" id="feed-wrap">
+            <!-- Corner HUD Reticles -->
+            <div class="reticle-corner reticle-tl"></div>
+            <div class="reticle-corner reticle-tr"></div>
+            <div class="reticle-corner reticle-bl"></div>
+            <div class="reticle-corner reticle-br"></div>
+
+            <!-- Viewport Top HUD -->
+            <div class="viewport-hud">
+              <div class="hud-badge">LIVE TRIPWIRE &bull; LINE X: <span id="hud-linepos">50</span>%</div>
+              <div class="hud-badge" style="color:var(--accent-emerald);">GATE: AUTO</div>
+            </div>
+
+            <!-- Detection Alert Overlay -->
+            <div class="detection-alert" id="det-alert">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>DEFECT IDENTIFIED &mdash; SOLENOID FIRED</span>
+            </div>
+
+            <!-- Video Feed / Canvas -->
+            <img id="feed" src="/video_feed" alt="Live stream">
+            <canvas id="sim-canvas" style="display:none;"></canvas>
+            
+            <!-- Fallback Message -->
+            <div class="feed-lost" id="lost">
+              <i class="bi bi-camera-video-off fs-3 mb-2 text-warning"></i>
+              <div>Video stream offline &bull; Reconnecting...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Real-Time Event Audit Log -->
+      <div class="panel mb-0">
+        <div class="panel-header">
+          <div class="title-group">
+            <i class="bi bi-list-columns text-info"></i>
+            <span>Quality Audit Log &bull; Recent Package Classifications</span>
+          </div>
+          <span class="hud-badge">BUFFER: 20 EVENTS</span>
+        </div>
+        <div class="panel-body p-0">
+          <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+            <table class="industrial-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">ID</th>
+                  <th style="width: 110px;">Time (UTC)</th>
+                  <th>Classification</th>
+                  <th>Confidence</th>
+                  <th>Discharge Action</th>
+                  <th>Cycle (ms)</th>
+                  <th style="width: 90px; text-align: center;">Operator Review</th>
+                </tr>
+              </thead>
+              <tbody id="lg">
+                <!-- Dynamically rendered rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: System Tuning & Hardware Control -->
+    <div class="col-12 col-xl-4">
+      
+      <!-- Panel 1: Hardware Interconnect (Arduino / Actuator) -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="title-group">
+            <i class="bi bi-cpu text-warning"></i>
+            <span>Hardware Interconnect</span>
+          </div>
+          <span class="status-dot" id="s-ard-dot"></span>
+        </div>
+        <div class="panel-body">
+          <div class="status-row">
+            <span class="key">Actuator Solenoid</span>
+            <span class="val text-success">READY (Pin D9)</span>
+          </div>
+          <div class="status-row">
+            <span class="key">Serial Controller</span>
+            <span class="val" id="s-ard">Offline</span>
+          </div>
+          <div class="status-row">
+            <span class="key">Camera Subsystem</span>
+            <span class="val" id="s-cam">Offline</span>
+          </div>
+
+          <!-- Port Connection Input -->
+          <div class="mt-3">
+            <label class="control-label mb-1">COM Interface Port</label>
+            <div class="input-group input-group-sm">
+              <input type="text" id="serial-port" class="form-control bg-dark border-secondary text-white font-monospace" placeholder="COM3 / /dev/ttyUSB0">
+              <button class="btn btn-industrial btn-industrial-secondary" id="connect-ard">Connect</button>
+              <button class="btn btn-industrial btn-industrial-secondary" id="test-ard" title="Test physical servo rod sweep"><i class="bi bi-play"></i> Test Arm</button>
+            </div>
+            <div class="text-muted mt-1" style="font-size: 0.69rem; font-family: var(--font-mono);">
+              Default: 9600 Baud &bull; 8-N-1 Handshake
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Computer Vision Tuning -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="title-group">
+            <i class="bi bi-sliders text-cyan"></i>
+            <span>Vision Tuning Parameters</span>
+          </div>
+          <i class="bi bi-wrench text-muted"></i>
+        </div>
+        <div class="panel-body">
+          
+          <!-- Confidence Threshold -->
+          <div class="control-row">
+            <div class="control-label-group">
+              <span class="control-label">Defect Confidence Floor</span>
+              <span class="control-val-tag"><span id="thv">50</span>%</span>
+            </div>
+            <input type="range" id="th" min="5" max="95" value="50" class="custom-slider">
+          </div>
+
+          <!-- Sensitivity -->
+          <div class="control-row">
+            <div class="control-label-group">
+              <span class="control-label">Contour Morph Sensitivity</span>
+              <span class="control-val-tag" id="sensv">50</span>
+            </div>
+            <input type="range" id="sens" min="10" max="100" value="50" class="custom-slider">
+          </div>
+
+          <!-- Line Position -->
+          <div class="control-row">
+            <div class="control-label-group">
+              <span class="control-label">Optical Tripwire Offset (X-Axis)</span>
+              <span class="control-val-tag"><span id="linev">50</span>%</span>
+            </div>
+            <input type="range" id="linepos" min="10" max="90" value="50" class="custom-slider">
+          </div>
+
+          <!-- Arm Delay -->
+          <div class="control-row mb-1">
+            <div class="control-label-group">
+              <span class="control-label">Pneumatic Actuation Delay</span>
+              <span class="control-val-tag"><span id="dlv">0.0</span>s</span>
+            </div>
+            <input type="range" id="dl" min="0" max="5" step="0.05" value="0" class="custom-slider">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel 3: Manual Overrides & Diagnostic Controls -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="title-group">
+            <i class="bi bi-lightning-charge text-danger"></i>
+            <span>Manual Overrides &amp; Diagnostics</span>
+          </div>
+        </div>
+        <div class="panel-body d-flex flex-column gap-2">
+          
+          <button id="simulate-torn" class="btn btn-industrial btn-industrial-danger w-100 py-2">
+            <i class="bi bi-hand-index-thumb"></i>
+            <span>Trigger Defect Injection (Test Solenoid)</span>
+          </button>
+
+          <button id="rs" class="btn btn-industrial btn-industrial-secondary w-100">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Reset Counter Registers</span>
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+// ── Configuration & Initialization ──
+const IS_VERCEL = {{IS_VERCEL}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ── Environment Mode Indicator ──
+$('mode-badge').innerHTML = IS_VERCEL
+  ? '<span class="telemetry-chip" style="color:var(--accent-amber);border-color:rgba(245,158,11,0.3);"><i class="bi bi-cloud-check"></i> CLOUD DEMO</span>'
+  : '<span class="telemetry-chip" style="color:var(--accent-emerald);border-color:rgba(16,185,129,0.3);"><i class="bi bi-hdd-rack"></i> LOCAL STATION</span>';
+
+// ── Camera Feed & Simulation Elements ──
+const feed = $('feed');
+const simCanvas = $('sim-canvas');
+const lost = $('lost');
+const detAlert = $('det-alert');
+
+let simulationActive = false;
+let simulationInitialized = false;
+
+function toggleSimulationFeed() {
+  simulationActive = !simulationActive;
+  if (simulationActive) {
+    feed.style.display = 'none';
+    simCanvas.style.display = 'block';
+    if (!simulationInitialized) {
+      initSimulation();
+      simulationInitialized = true;
+    }
+    if ($('btn-toggle-feed')) $('btn-toggle-feed').innerHTML = '<i class="bi bi-camera-video"></i> Cam Feed';
+  } else {
+    simCanvas.style.display = 'none';
+    feed.style.display = 'block';
+    feed.src = '/video_feed?' + Date.now();
+    if ($('btn-toggle-feed')) $('btn-toggle-feed').innerHTML = '<i class="bi bi-display"></i> Sim Feed';
+  }
+}
+
+if (!IS_VERCEL) {
+  feed.style.display = 'block';
+  simCanvas.style.display = 'none';
+  feed.onload = () => { lost.style.display = 'none'; };
+  feed.onerror = () => {
+    // If stream drops, retry after 2 seconds
+    setTimeout(() => { feed.src = '/video_feed?' + Date.now(); }, 2000);
+  };
+} else {
+  toggleSimulationFeed();
+}
+
+if ($('btn-toggle-feed')) {
+  $('btn-toggle-feed').onclick = toggleSimulationFeed;
+}
+
+if ($('btn-reconnect-cam')) {
+  $('btn-reconnect-cam').onclick = async () => {
+    const btn = $('btn-reconnect-cam');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
+    try {
+      const fd = new FormData();
+      const currentIdx = parseInt(localStorage.getItem('cam_idx') || '0');
+      const nextIdx = currentIdx === 0 ? 1 : 0;
+      fd.append('index', nextIdx);
+      const r = await fetch('/api/reconnect_camera', { method: 'POST', body: fd });
+      const d = await r.json();
+      localStorage.setItem('cam_idx', d.index);
+      feed.src = '/video_feed?' + Date.now();
+      btn.innerHTML = '<i class="bi bi-check-lg text-success"></i> Cam ' + d.index;
+    } catch (e) {
+      btn.innerHTML = '<i class="bi bi-x-lg text-danger"></i> Failed';
+    }
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Reconnect Cam';
+    }, 2000);
+  };
+}
+
+// ── High-Fidelity Factory Simulation Canvas (Vercel Mode) ──
+function initSimulation() {
+  const canvas = simCanvas;
+  const ctx = canvas.getContext('2d');
+  canvas.width = 640;
+  canvas.height = 480;
+
+  let packages = [];
+  let frameCount = 0;
+  const lineX = () => canvas.width * (parseInt($('linepos')?.value || 50)) / 100;
+  const beltY = canvas.height / 2;
+
+  function spawnPackage() {
+    const isTorn = Math.random() < 0.28;
+    packages.push({
+      x: -70,
+      y: beltY - 22 + (Math.random() - 0.5) * 30,
+      w: 64 + Math.random() * 18,
+      h: 46 + Math.random() * 12,
+      speed: 1.8 + Math.random() * 0.4,
+      torn: isTorn,
+      detected: false,
+      serialId: 'PKG-' + Math.floor(1000 + Math.random() * 9000),
+    });
+  }
+
+  function draw() {
+    frameCount++;
+    
+    // Industrial background (matte dark slate)
+    ctx.fillStyle = '#0a0d14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const lx = lineX();
+
+    // Conveyor Bed (Steel Frame)
+    ctx.fillStyle = '#141824';
+    ctx.fillRect(0, beltY - 65, canvas.width, 130);
+
+    // Conveyor Belt Surface (Rubberized belt texture)
+    ctx.fillStyle = '#1c2233';
+    ctx.fillRect(0, beltY - 52, canvas.width, 104);
+
+    // Moving Belt Roller Slats
+    ctx.strokeStyle = '#27314a';
+    ctx.lineWidth = 2;
+    for (let x = (frameCount * 2.2) % 36; x < canvas.width; x += 36) {
+      ctx.beginPath();
+      ctx.moveTo(x, beltY - 52);
+      ctx.lineTo(x, beltY + 52);
+      ctx.stroke();
+    }
+
+    // Belt Guide Rails
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(0, beltY - 56, canvas.width, 4);
+    ctx.fillRect(0, beltY + 52, canvas.width, 4);
+
+    // Optical Inspection Zone Highlight (VERTICAL)
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+    ctx.fillRect(lx - 40, 0, 80, canvas.height);
+
+    // Zone Guard Lines (VERTICAL dashed)
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(lx - 40, 0);
+    ctx.lineTo(lx - 40, canvas.height);
+    ctx.moveTo(lx + 40, 0);
+    ctx.lineTo(lx + 40, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Laser Tripwire (Center Line - Emerald - VERTICAL)
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx, canvas.height);
+    ctx.stroke();
+
+    // Reticle text on vertical line
+    ctx.fillStyle = '#10b981';
+    ctx.font = '600 10px "JetBrains Mono", monospace';
+    ctx.fillText('TRIPWIRE [X: ' + Math.round(lx) + 'px]', Math.min(lx + 8, canvas.width - 130), 22);
+
+    // Packages on Belt
+    for (let p of packages) {
+      p.x += p.speed;
+
+      ctx.save();
+      if (p.torn) {
+        // Torn / Damaged Package - Distorted Box with Tearing
+        ctx.fillStyle = '#a87850';
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + p.w * 0.35, p.y - 4);
+        ctx.lineTo(p.x + p.w * 0.7, p.y + 2);
+        ctx.lineTo(p.x + p.w, p.y - 3);
+        ctx.lineTo(p.x + p.w + 4, p.y + p.h * 0.45);
+        ctx.lineTo(p.x + p.w, p.y + p.h);
+        ctx.lineTo(p.x + p.w * 0.45, p.y + p.h + 5);
+        ctx.lineTo(p.x, p.y + p.h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Torn rupture edge (red jagged crack)
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p.x + p.w * 0.2, p.y + 10);
+        ctx.lineTo(p.x + p.w * 0.4, p.y + p.h * 0.6);
+        ctx.lineTo(p.x + p.w * 0.6, p.y + 15);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        // Pristine Corrugated Package
+        ctx.fillStyle = '#c29b68';
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeStyle = '#8c6b40';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+        // Center Packing Tape Strip
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.fillRect(p.x, p.y + p.h * 0.42, p.w, p.h * 0.16);
+
+        // Barcode Label
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(p.x + 8, p.y + 8, 22, 14);
+        ctx.fillStyle = '#000000';
+        for (let b = 10; b < 28; b += 3) {
+          ctx.fillRect(p.x + b, p.y + 10, 1.5, 10);
+        }
+      }
+
+      // Tracking ID label
+      ctx.fillStyle = p.torn ? '#f43f5e' : '#ffffff';
+      ctx.font = '500 9px "JetBrains Mono", monospace';
+      ctx.fillText(p.serialId, p.x + 4, p.y - 4);
+      ctx.restore();
+
+      // Inspection Trigger Boundary Detection (Crossing vertical tripwire)
+      if (!p.detected && (p.x + p.w * 0.5 >= lx - 8) && (p.x + p.w * 0.5 <= lx + 12)) {
+        p.detected = true;
+        if (p.torn) {
+          detAlert.classList.add('show');
+          setTimeout(() => detAlert.classList.remove('show'), 1600);
+          fetch('/api/torn', { method: 'POST' }).then(() => poll()).catch(() => {});
+        }
+      }
+    }
+
+    // Filter off-screen packages
+    packages = packages.filter(p => p.x < canvas.width + 100);
+
+    // Spawn packages periodically
+    if (frameCount % 85 === 0) {
+      spawnPackage();
+    }
+
+    // Viewport Diagnostics in Canvas corner
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 10px "JetBrains Mono", monospace';
+    ctx.fillText('EMULATED INDUSTRIAL BELT // SPEED: 1.2 M/S', 12, canvas.height - 12);
+    ctx.fillText('STATION: CELL_01', canvas.width - 130, canvas.height - 12);
+
+    requestAnimationFrame(draw);
+  }
+
+  spawnPackage();
+  draw();
+}
+    ctx.fillStyle = '#64748b';
+    ctx.font = '500 10px "JetBrains Mono", monospace';
+    ctx.fillText('EMULATED INDUSTRIAL BELT // SPEED: 1.2 M/S', 12, canvas.height - 12);
+    ctx.fillText('STATION: CELL_01', canvas.width - 130, canvas.height - 12);
+
+    requestAnimationFrame(draw);
+  }
+
+  spawnPackage();
+  draw();
+}
+
+// ── Telemetry Polling & Live Data Rendering ──
+let settingsLoaded = false;
+let lastDetection = false;
+
+async function poll() {
+  try {
+    const r = await fetch('/api/stats', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    render(d);
+  } catch (e) {
+    $('s-cam').textContent = 'Link Timeout';
+  }
+}
+
+function render(d) {
+  // Metric counts
+  $('sn').textContent = d.inspected;
+  $('sr').textContent = d.rejected;
+  $('sa').textContent = d.accuracy !== null ? d.accuracy.toFixed(1) + '%' : '100%';
+  $('sq').textContent = d.queue_size;
+  $('sf').textContent = d.status.fps ? d.status.fps : '30';
+
+  // Subsystem Indicators
+  const camOn = d.status.camera;
+  $('cam-dot').className = 'status-dot ' + (camOn ? 'online' : (d.is_vercel ? 'online' : 'offline'));
+  $('cam-status').textContent = camOn ? 'ONLINE' : (d.is_vercel ? 'SIMULATION' : 'OFFLINE');
+
+  $('s-cam').textContent = camOn ? 'Connected (cv2)' : (d.is_vercel ? 'Emulated' : 'Offline');
+
+  const ardOn = d.status.arduino;
+  $('s-ard-dot').className = 'status-dot ' + (ardOn ? 'online' : 'offline');
+  $('s-ard').textContent = ardOn ? ('Connected (' + (d.status.serial_port || '') + ')') : 'Disengaged';
+  $('s-ard').className = 'val ' + (ardOn ? 'text-success' : 'text-muted');
+
+  $('s-det').textContent = (d.status.detector === 'contour' ? 'CONTOUR-MORPH' : d.status.detector).toUpperCase();
+  $('detect-state').textContent = d.status.detection_active ? 'ARMED' : 'STANDBY';
+  $('detect-state').style.color = d.status.detection_active ? 'var(--accent-emerald)' : 'var(--text-muted)';
+
+  // Real-time flash notification for local hardware mode
+  if (!IS_VERCEL && d.detection && d.detection.detected && !lastDetection) {
+    detAlert.classList.add('show');
+    setTimeout(() => detAlert.classList.remove('show'), 2000);
+  }
+  lastDetection = d.detection ? d.detection.detected : false;
+
+  // Sync settings once on initial payload
+  if (!settingsLoaded) {
+    $('th').value = Math.round((d.settings.conf_threshold || 0.5) * 100);
+    $('thv').textContent = $('th').value;
+    $('dl').value = d.settings.reject_delay_s || 0;
+    $('dlv').textContent = (+$('dl').value).toFixed(2);
+    $('sens').value = d.settings.detection_sensitivity || 50;
+    $('sensv').textContent = $('sens').value;
+    $('linepos').value = d.settings.line_position || 50;
+    $('linev').textContent = $('linepos').value;
+    if ($('hud-linepos')) $('hud-linepos').textContent = $('linepos').value;
+    if (d.status.serial_port) $('serial-port').value = d.status.serial_port;
+    settingsLoaded = true;
+  }
+
+  // Populate Quality Audit Data Grid
+  const rows = d.events.map(e => {
+    const isReject = e.action === 'reject';
+    const actionBadge = isReject 
+      ? '<span class="badge-chip badge-reject"><i class="bi bi-x-octagon me-1"></i>REJECT</span>'
+      : '<span class="badge-chip badge-accept"><i class="bi bi-check-circle me-1"></i>PASS</span>';
+    
+    const timeDisplay = e.ts.includes('T') ? e.ts.split('T')[1].split('.')[0] : e.ts;
+
+    return `<tr>
+      <td class="text-muted">#${e.id}</td>
+      <td>${esc(timeDisplay)}</td>
+      <td><span class="text-white">${esc(e.label.toUpperCase())}</span></td>
+      <td>${(e.confidence * 100).toFixed(0)}%</td>
+      <td>${actionBadge}</td>
+      <td>${e.ms} ms</td>
+      <td style="text-align:center;">
+        <button class="btn-review-icon ${e.reviewed === 1 ? 'active-ok' : ''}" data-id="${e.id}" data-ok="1" title="Validate Decision">&check;</button>
+        <button class="btn-review-icon ${e.reviewed === 0 ? 'active-fail' : ''}" data-id="${e.id}" data-ok="0" title="Flag Defect">&cross;</button>
+      </td>
+    </tr>`;
+  }).join('');
+  
+  $('lg').innerHTML = rows || '<tr><td colspan="7" class="text-center text-muted py-3">No inspection telemetry recorded in register</td></tr>';
+}
+
+// Polling Interval
+setInterval(poll, 1000);
+poll();
+
+// ── Control Event Handlers ──
+function sendSetting(key, value) {
+  const fd = new FormData();
+  fd.append(key, value);
+  fetch('/api/settings', { method: 'POST', body: fd }).catch(() => {});
+}
+
+$('th').oninput = () => { $('thv').textContent = $('th').value; };
+$('th').onchange = () => sendSetting('conf_threshold', $('th').value / 100);
+
+$('dl').oninput = () => { $('dlv').textContent = (+$('dl').value).toFixed(2); };
+$('dl').onchange = () => sendSetting('reject_delay_s', +$('dl').value);
+
+$('sens').oninput = () => { $('sensv').textContent = $('sens').value; };
+$('sens').onchange = () => sendSetting('detection_sensitivity', +$('sens').value);
+
+$('linepos').oninput = () => { 
+  $('linev').textContent = $('linepos').value; 
+  if ($('hud-linepos')) $('hud-linepos').textContent = $('linepos').value;
+};
+$('linepos').onchange = () => sendSetting('line_position', +$('linepos').value);
+
+// Manual Defect Injection Simulation Trigger
+$('simulate-torn').onclick = async () => {
+  const btn = $('simulate-torn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Actuating Purge Arm...';
+  detAlert.classList.add('show');
+  try {
+    await fetch('/api/torn', { method: 'POST' });
+    await poll();
+  } catch (e) {}
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-hand-index-thumb"></i><span>Trigger Defect Injection (Test Solenoid)</span>';
+    detAlert.classList.remove('show');
+  }, 1200);
+};
+
+// Counter Reset
+$('rs').onclick = () => fetch('/api/reset', { method: 'POST' }).then(poll).catch(() => {});
+
+// Toggle Vision Algorithm
+$('toggle-detect').onclick = () => {
+  fetch('/api/toggle_detection', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      $('detect-state').textContent = d.detection_active ? 'ARMED' : 'STANDBY';
+      $('detect-state').style.color = d.detection_active ? 'var(--accent-emerald)' : 'var(--text-muted)';
+    }).catch(() => {});
+};
+
+// Arduino Connect Handshake
+$('connect-ard').onclick = async () => {
+  const port = $('serial-port').value.trim();
+  if (!port) return;
+  const fd = new FormData();
+  fd.append('port', port);
+  const btn = $('connect-ard');
+  btn.textContent = 'Linking...';
+  try {
+    const r = await fetch('/api/connect_arduino', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.connected) {
+      btn.className = 'btn btn-industrial btn-industrial-primary';
+      btn.textContent = 'Linked';
+    } else {
+      btn.className = 'btn btn-industrial btn-industrial-danger';
+      btn.textContent = 'No Signal';
+    }
+    setTimeout(() => {
+      btn.className = 'btn btn-industrial btn-industrial-secondary';
+      btn.textContent = 'Connect';
+    }, 2500);
+  } catch (e) {
+    btn.textContent = 'Connect';
+  }
+};
+
+// Test Physical Actuator Arm
+if ($('test-ard')) {
+  $('test-ard').onclick = async () => {
+    const btn = $('test-ard');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sweeping...';
+    try {
+      await fetch('/api/test_arduino', { method: 'POST' });
+    } catch (e) {}
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-play"></i> Test Arm';
+    }, 1200);
+  };
+}
+
+// Operator Audit Feedback (Event Delegation)
+$('lg').onclick = e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  const fd = new FormData();
+  fd.append('id', b.dataset.id);
+  fd.append('correct', b.dataset.ok);
+  fetch('/api/feedback', { method: 'POST', body: fd }).then(poll).catch(() => {});
+};
+</script>
+</body>
+</html>
